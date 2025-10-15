@@ -1,6 +1,5 @@
 import type {
 	IAuthenticateGeneric,
-	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
 } from 'n8n-workflow';
@@ -17,7 +16,7 @@ export class SentorApi implements ICredentialType {
 			typeOptions: { password: true },
 			default: '',
 			required: true,
-			description: 'The API key to authenticate with Sentor ML API',
+			description: 'The API key to authenticate with Sentor ML API. Get your API key from <a href="https://sentor.app" target="_blank">sentor.app</a>. The credentials will be validated when you use the node.',
 		},
 	];
 
@@ -31,21 +30,7 @@ export class SentorApi implements ICredentialType {
 		},
 	};
 
-	// Test the credentials by making a request to the API
-	test: ICredentialTestRequest = {
-		request: {
-			baseURL: 'https://sentor.app',
-			url: '/api/predicts',
-			method: 'POST',
-			body: {
-				docs: [
-					{
-						doc: 'Test',
-						doc_id: 'test_credential',
-					},
-				],
-			},
-		},
-	};
+	// Note: No credential test to avoid consuming user's API rate limits
+	// Authentication will be validated when the node is actually used
 }
 

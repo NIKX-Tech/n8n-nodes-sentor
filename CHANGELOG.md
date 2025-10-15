@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-10-15
+
+### Fixed
+- **Dark Mode Icon**: Properly configured dark mode icon support - node now displays correct icon in n8n's dark theme
+- **Icon Configuration**: Updated from single icon string to object format with separate light and dark theme icons
+
+### Changed
+- **Credential Test Removed**: Removed credential test to avoid consuming user's API rate limits during setup. Credentials are now validated when the node is actually used, providing better user experience and preserving API quota.
+- **Improved Credential Description**: Added helpful link to get API key and clearer messaging about validation timing
+
 ## [0.2.0] - 2025-10-15
 
 ### Added
