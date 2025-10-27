@@ -38,6 +38,16 @@ export class SentorApi implements ICredentialType {
 			url: '/health',
 			method: 'GET',
 		},
+		rules: [
+			{
+				type: 'responseSuccessBody',
+				properties: {
+					message: 'API key is valid',
+					key: 'status',
+					value: 'healthy',
+				},
+			},
+		],
 	};
 }
 
