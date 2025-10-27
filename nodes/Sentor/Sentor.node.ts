@@ -200,7 +200,7 @@ export class Sentor implements INodeType {
 			try {
 				const requestOptions: IHttpRequestOptions = {
 					method: 'GET',
-					url: 'https://sentor.app/api/predicts/health',
+					url: 'https://sentor.app/api/health',
 					json: true,
 				};
 

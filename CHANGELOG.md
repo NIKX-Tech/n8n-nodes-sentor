@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-10-27
+
+### Added
+- **Credential Test**: Added credential test using health check endpoint (`/health`) to validate API key during credential setup
+- This is required for n8n community node approval and provides immediate feedback to users about credential validity
+
+### Fixed
+- **n8n Automated Review**: Fixed missing credential test requirement for n8n community node submission
+- **Health Check Endpoint**: Corrected health check endpoint from `/predicts/health` to `/health` (requires authentication)
+
 ## [0.2.1] - 2025-10-15
 
 ### Fixed
