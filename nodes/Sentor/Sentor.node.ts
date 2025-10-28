@@ -12,7 +12,10 @@ export class Sentor implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Sentor Sentiment Analysis',
 		name: 'sentor',
-		icon: 'file:sentor-v2.svg',
+		icon: {
+			light: 'file:sentor-v3.svg',
+			dark: 'file:sentor-v3.dark.svg',
+		},
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
