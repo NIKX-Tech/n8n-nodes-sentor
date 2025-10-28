@@ -5,6 +5,8 @@ import type {
 	INodeTypeDescription,
 	IHttpRequestOptions,
 	IDataObject,
+	ISupplyDataFunctions,
+	SupplyData,
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
@@ -31,6 +33,7 @@ export class Sentor implements INodeType {
 				required: true,
 			},
 		],
+		usableAsTool: true,
 		properties: [
 			{
 				displayName: 'Resource',
@@ -379,6 +382,87 @@ export class Sentor implements INodeType {
 		}
 
 		return [returnData];
+	}
+
+	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
+		const language = this.getNodeParameter('language', itemIndex, 'en') as string;
+		const self = this;
+
+		// Create a simple tool object that n8n can use for AI Agent
+		const tool = {
+			name: 'sentor_sentiment_analysis',
+			description: 'Analyzes the sentiment of text documents. Returns sentiment labels (positive, negative, neutral) with probability scores and details about specific entities if provided. Works with English (en), German (de), and Dutch (nl) languages.',
+			parameters: {
+				type: 'object',
+				properties: {
+					documentText: {
+						type: 'string',
+						description: 'The text content to analyze for sentiment',
+					},
+					entities: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'Optional list of entities to analyze within the text (e.g., company names, products, services)',
+					},
+				},
+				required: ['documentText'],
+			},
+			execute: async (args: { documentText: string; entities?: string[] }) => {
+				const requestOptions: IHttpRequestOptions = {
+					method: 'POST',
+					url: `https://sentor.app/api/predicts?language=${language}`,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: {
+						docs: [
+							{
+								doc: args.documentText,
+								doc_id: 'ai_agent_doc',
+								...(args.entities && args.entities.length > 0 ? { entities: args.entities } : {}),
+							},
+						],
+					},
+					json: true,
+				};
+
+				const response = (await self.helpers.httpRequestWithAuthentication.call(
+					self,
+					'sentorApi',
+					requestOptions,
+				)) as {
+					results: Array<{
+						doc_id: string;
+						predicted_class: number;
+						predicted_label: string;
+						probabilities: IDataObject;
+						details: Array<IDataObject>;
+					}>;
+				};
+
+				if (!response.results || !Array.isArray(response.results) || response.results.length === 0) {
+					throw new NodeApiError(self.getNode(), {
+						message: 'Invalid response from Sentor API',
+						description: 'The API did not return results in the expected format',
+					});
+				}
+
+				const result = response.results[0];
+				const probability = result.probabilities[result.predicted_label as string] as number || 0;
+
+				return {
+					predicted_class: result.predicted_class,
+					predicted_label: result.predicted_label,
+					probability,
+					probabilities: result.probabilities,
+					details: result.details,
+				};
+			},
+		};
+
+		return {
+			response: tool,
+		};
 	}
 }
 

@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-sentor",
-    "version": "0.2.10",
+    "version": "0.2.11",
     "type": "commonjs",
     "description": "n8n community node for sentiment analysis using Sentor AI API",
     "license": "MIT",
