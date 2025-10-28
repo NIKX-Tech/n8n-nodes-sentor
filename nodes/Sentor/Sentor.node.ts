@@ -152,7 +152,8 @@ export class Sentor implements INodeType {
 			},
 			default: {},
 			placeholder: 'Add Entity',
-			description: 'Optional list of entities to analyze within the text',
+			required: true,
+			description: 'Required list of entities to analyze within the text. Must contain at least 1 entity.',
 			options: [
 				{
 					displayName: 'Entity',
@@ -260,16 +261,29 @@ export class Sentor implements INodeType {
 						doc_id: `doc_${itemIndex}`,
 					};
 
-					// Parse entities if provided
-					if (entitiesCollection && entitiesCollection.entityValues) {
-						const entityItems = entitiesCollection.entityValues as Array<{ entity: string }>;
-						const entities = entityItems
-							.map((e) => e.entity?.trim())
-							.filter((e) => e && e.length > 0);
-						if (entities.length > 0) {
-							docPayload.entities = entities as string[];
-						}
+					// Parse entities - now required
+					if (!entitiesCollection || !entitiesCollection.entityValues) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Entities are required and must contain at least 1 entity',
+							{ itemIndex },
+						);
 					}
+
+					const entityItems = entitiesCollection.entityValues as Array<{ entity: string }>;
+					const entities = entityItems
+						.map((e) => e.entity?.trim())
+						.filter((e) => e && e.length > 0);
+
+					if (entities.length === 0) {
+						throw new NodeOperationError(
+							this.getNode(),
+							'Entities are required and must contain at least 1 entity',
+							{ itemIndex },
+						);
+					}
+
+					docPayload.entities = entities as string[];
 
 					docs.push(docPayload);
 				} catch (error) {
@@ -391,7 +405,7 @@ export class Sentor implements INodeType {
 		// Create a simple tool object that n8n can use for AI Agent
 		const tool = {
 			name: 'sentor_sentiment_analysis',
-			description: 'Analyzes the sentiment of text documents. Returns sentiment labels (positive, negative, neutral) with probability scores and details about specific entities if provided. Works with English (en), German (de), and Dutch (nl) languages.',
+			description: 'Analyzes the sentiment of text documents with focus on specific entities. Returns sentiment labels (positive, negative, neutral) with probability scores and details about the specified entities. Works with English (en), German (de), and Dutch (nl) languages. Requires at least one entity to analyze.',
 			parameters: {
 				type: 'object',
 				properties: {
@@ -402,12 +416,21 @@ export class Sentor implements INodeType {
 					entities: {
 						type: 'array',
 						items: { type: 'string' },
-						description: 'Optional list of entities to analyze within the text (e.g., company names, products, services)',
+						minItems: 1,
+						description: 'Required list of entities to analyze within the text (e.g., company names, products, services). Must contain at least 1 entity.',
 					},
 				},
-				required: ['documentText'],
+				required: ['documentText', 'entities'],
 			},
-			execute: async (args: { documentText: string; entities?: string[] }) => {
+			execute: async (args: { documentText: string; entities: string[] }) => {
+				// Validate that entities array has at least 1 item
+				if (!args.entities || args.entities.length === 0) {
+					throw new NodeApiError(self.getNode(), {
+						message: 'Entities array is required and must contain at least 1 entity',
+						description: 'Please provide at least one entity to analyze',
+					});
+				}
+
 				const requestOptions: IHttpRequestOptions = {
 					method: 'POST',
 					url: `https://sentor.app/api/predicts?language=${language}`,
@@ -419,7 +442,7 @@ export class Sentor implements INodeType {
 							{
 								doc: args.documentText,
 								doc_id: 'ai_agent_doc',
-								...(args.entities && args.entities.length > 0 ? { entities: args.entities } : {}),
+								entities: args.entities,
 							},
 						],
 					},
