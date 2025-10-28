@@ -1,7 +1,7 @@
 {
     "name": "n8n-nodes-sentor",
-    "version": "0.2.7",
-    "type": "module",
+    "version": "0.2.8",
+    "type": "commonjs",
     "description": "n8n community node for sentiment analysis using Sentor AI API",
     "license": "MIT",
     "homepage": "https://github.com/NIKX-Tech/n8n-nodes-sentor",
@@ -50,9 +50,9 @@
         "release-it": "^19.0.4",
         "typescript": "5.9.2"
     },
-	"peerDependencies": {
-		"n8n-workflow": "*"
-	},
+    "peerDependencies": {
+        "n8n-workflow": "*"
+    },
     "overrides": {
         "change-case": "4.1.2",
         "@n8n/eslint-plugin-community-nodes": "0.5.0"
