@@ -158,10 +158,7 @@ export class Sentor implements INodeType {
 						name: 'English',
 						value: 'en',
 					},
-					{
-						name: 'German',
-						value: 'de',
-					},
+
 					{
 						name: 'Dutch',
 						value: 'nl',
@@ -188,6 +185,19 @@ export class Sentor implements INodeType {
 				required: true,
 				placeholder: 'Enter the text to analyze...',
 				description: 'The text content to analyze for sentiment',
+			},
+			{
+				displayName: 'Document ID',
+				name: 'docId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['predict'],
+					},
+				},
+				default: '',
+				description: 'Unique identifier for the document',
 			},
 			{
 				displayName: 'Entities',
@@ -479,13 +489,15 @@ export class Sentor implements INodeType {
 						);
 					}
 
+					const docId = this.getNodeParameter('docId', itemIndex, '') as string;
+
 					const docPayload: {
 						doc: string;
 						doc_id: string;
 						entities?: string[];
 					} = {
 						doc: documentText,
-						doc_id: `doc_${itemIndex}`,
+						doc_id: docId || `doc_${itemIndex}`,
 					};
 
 					// Parse entities - now required
@@ -531,7 +543,7 @@ export class Sentor implements INodeType {
 				try {
 					const requestOptions: IHttpRequestOptions = {
 						method: 'POST',
-						url: `${baseUrl}/predicts?language=${language}`,
+						url: `${baseUrl}/predict?language=${language}`,
 						headers: {
 							'Content-Type': 'application/json',
 						},
@@ -567,7 +579,7 @@ export class Sentor implements INodeType {
 
 					// Map results back to input items
 					for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
-						const docId = `doc_${itemIndex}`;
+						const docId = docs[itemIndex].doc_id;
 						const result = response.results.find((r) => r.doc_id === docId);
 
 						if (!result) {
@@ -798,7 +810,7 @@ export class Sentor implements INodeType {
 		// Create a simple tool object that n8n can use for AI Agent
 		const tool = {
 			name: 'sentor_sentiment_analysis',
-			description: 'Analyzes the sentiment of text documents with focus on specific entities. Returns sentiment labels (positive, negative, neutral) with probability scores and details about the specified entities. Works with English (en), German (de), and Dutch (nl) languages. Requires at least one entity to analyze.',
+			description: 'Analyzes the sentiment of text documents with focus on specific entities. Returns sentiment labels (positive, negative, neutral) with probability scores and details about the specified entities. Works with English (en) and Dutch (nl) languages. Requires at least one entity to analyze.',
 			parameters: {
 				type: 'object',
 				properties: {
@@ -826,7 +838,7 @@ export class Sentor implements INodeType {
 
 				const requestOptions: IHttpRequestOptions = {
 					method: 'POST',
-					url: `${baseUrl}/predicts?language=${language}`,
+					url: `${baseUrl}/predict?language=${language}`,
 					headers: {
 						'Content-Type': 'application/json',
 					},
