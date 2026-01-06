@@ -165,21 +165,65 @@ npm run dev
 
 This will start n8n with your local node loaded. You can then test it in your workflows.
 
-### Testing
+## Customization
 
-To test the node in a local n8n instance:
+### Changing the Logo/Icon
+1. **Create Your Custom SVG Icons**: 24x24px SVG (light and dark mode versions).
+2. **Replace the Files**:
+   ```bash
+   cp /path/to/your/sentor-light.svg nodes/Sentor/sentor.svg
+   cp /path/to/your/sentor-dark.svg nodes/Sentor/sentor.dark.svg
+   ```
+3. **Rebuild**: `npm run build`
 
-1. Link the package locally:
-```bash
-npm link
+### Adding More Languages
+In `nodes/Sentor/Sentor.node.ts`, add to the language options array:
+```typescript
+{ name: 'French', value: 'fr' },
 ```
 
-2. In your n8n installation directory:
-```bash
-npm link n8n-nodes-sentor
-```
+## Advanced Installation (Self-Hosted)
 
-3. Restart n8n and the node will be available
+If you are running a self-hosted n8n instance (e.g., Docker), you can verify the node before publishing:
+
+### Docker Installation
+1. **Build and Pack**:
+   ```bash
+   npm run build
+   npm pack
+   ```
+2. **Mount to Container**:
+   Update `docker-compose.yml`:
+   ```yaml
+   volumes:
+     - ./n8n-nodes-sentor-0.1.0.tgz:/tmp/node-package.tgz
+   environment:
+     - N8N_CUSTOM_EXTENSIONS=/tmp
+   ```
+3. **Install inside Container**:
+   ```bash
+   docker exec -it n8n_container npm install /tmp/node-package.tgz
+   ```
+
+## Testing
+
+ To test the node in a local n8n instance:
+
+ 1. **Link the package locally**:
+ ```bash
+ npm link
+ ```
+ 
+ 2. **In your n8n installation directory**:
+ ```bash
+ npm link n8n-nodes-sentor
+ ```
+ 
+ 3. **Restart n8n** and the node will be available.
+ 
+ 4. **Verify**:
+    - Check "Sentor ML" appears in nodes panel.
+    - Test connection in Credentials.
 
 ## Contributing
 

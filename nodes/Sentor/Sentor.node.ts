@@ -7,6 +7,7 @@ import type {
 	IDataObject,
 	ISupplyDataFunctions,
 	SupplyData,
+	JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
@@ -31,10 +32,47 @@ export class Sentor implements INodeType {
 			{
 				name: 'sentorApi',
 				required: true,
+				displayOptions: {
+					show: {
+						'/operation': [
+							'predict',
+							'healthCheck',
+							'cluster',
+							'topicName',
+						],
+					},
+				},
+			},
+			{
+				name: 'googleGeminiApi',
+				required: false,
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['topicName'],
+					},
+				},
 			},
 		],
 		usableAsTool: true,
 		properties: [
+			{
+				displayName: 'Environment',
+				name: 'environment',
+				type: 'options',
+				noDataExpression: true,
+				options: [
+					{
+						name: 'Production',
+						value: 'production',
+					},
+					{
+						name: 'Development',
+						value: 'dev',
+					},
+				],
+				default: 'production',
+			},
 			{
 				displayName: 'Resource',
 				name: 'resource',
@@ -64,6 +102,18 @@ export class Sentor implements INodeType {
 				},
 				options: [
 					{
+						name: 'Cluster Documents',
+						value: 'cluster',
+						description: 'Cluster documents using BERTopic',
+						action: 'Cluster documents',
+					},
+					{
+						name: 'Generate Topic Name',
+						value: 'topicName',
+						description: 'Generate a descriptive topic name for a cluster',
+						action: 'Generate topic name',
+					},
+					{
 						name: 'Predict Sentiment',
 						value: 'predict',
 						description: 'Analyze sentiment of text document',
@@ -92,6 +142,7 @@ export class Sentor implements INodeType {
 				],
 				default: 'healthCheck',
 			},
+			// Common inputs
 			{
 				displayName: 'Language',
 				name: 'language',
@@ -119,6 +170,7 @@ export class Sentor implements INodeType {
 				default: 'en',
 				description: 'The language of the documents to analyze',
 			},
+			// Inputs for Predict
 			{
 				displayName: 'Document Text',
 				name: 'documentText',
@@ -137,40 +189,40 @@ export class Sentor implements INodeType {
 				placeholder: 'Enter the text to analyze...',
 				description: 'The text content to analyze for sentiment',
 			},
-		{
-			displayName: 'Entities',
-			name: 'entities',
-			type: 'fixedCollection',
-			typeOptions: {
-				multipleValues: true,
-			},
-			displayOptions: {
-				show: {
-					resource: ['document'],
-					operation: ['predict'],
+			{
+				displayName: 'Entities',
+				name: 'entities',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
 				},
-			},
-			default: {},
-			placeholder: 'Add Entity',
-			required: true,
-			description: 'Required list of entities to analyze within the text. Must contain at least 1 entity.',
-			options: [
-				{
-					displayName: 'Entity',
-					name: 'entityValues',
-					values: [
-						{
-							displayName: 'Entity Name',
-							name: 'entity',
-							type: 'string',
-							default: '',
-							placeholder: 'e.g., company, product, service',
-							description: 'Name of the entity to analyze',
-						},
-					],
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['predict'],
+					},
 				},
-			],
-		},
+				default: {},
+				placeholder: 'Add Entity',
+				required: true,
+				description: 'Required list of entities to analyze within the text. Must contain at least 1 entity.',
+				options: [
+					{
+						displayName: 'Entity',
+						name: 'entityValues',
+						values: [
+							{
+								displayName: 'Entity Name',
+								name: 'entity',
+								type: 'string',
+								default: '',
+								placeholder: 'e.g., company, product, service',
+								description: 'Name of the entity to analyze',
+							},
+						],
+					},
+				],
+			},
 			{
 				displayName: 'Simplify Output',
 				name: 'simplify',
@@ -185,6 +237,177 @@ export class Sentor implements INodeType {
 				description:
 					'Whether to return a simplified output with just label, probability, and details',
 			},
+			// Inputs for Cluster
+			{
+				displayName: 'Language',
+				name: 'language',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster', 'topicName'],
+					},
+				},
+				default: 'en',
+				description: 'Language code (e.g., en, de, nl)',
+			},
+			{
+				displayName: 'Input Format',
+				name: 'inputFormat',
+				type: 'options',
+				options: [
+					{
+						name: 'JSON Parameter',
+						value: 'json',
+						description: 'Enter documents as a JSON array',
+					},
+					{
+						name: 'Manually Defined',
+						value: 'manual',
+						description: 'Define documents using the UI',
+					},
+				],
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+					},
+				},
+				default: 'json',
+			},
+			{
+				displayName: 'Documents (JSON)',
+				name: 'documentsJson',
+				type: 'json',
+				typeOptions: {
+					alwaysOpenEditWindow: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+						inputFormat: ['json'],
+					},
+				},
+				default: '',
+				description: 'List of documents to cluster. Each object must have doc_id, text, and optionally entities.',
+			},
+			{
+				displayName: 'Documents',
+				name: 'documentsUi',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+						inputFormat: ['manual'],
+					},
+				},
+				default: {},
+				placeholder: 'Add Document',
+				options: [
+					{
+						name: 'documentValues',
+						displayName: 'Document',
+						values: [
+							{
+								displayName: 'Document ID',
+								name: 'doc_id',
+								type: 'string',
+								default: '',
+								description: 'Unique identifier for the document',
+							},
+							{
+								displayName: 'Text',
+								name: 'text',
+								type: 'string',
+								default: '',
+								description: 'Content of the document',
+							},
+							{
+								displayName: 'Entities',
+								name: 'entities',
+								type: 'string',
+								default: '',
+								description: 'Comma-separated list of entities',
+							},
+						],
+					},
+				],
+			},
+			{
+				displayName: 'Number of Clusters',
+				name: 'n_clusters',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+					},
+				},
+				default: 0,
+				description: 'Optional target number of clusters. If 0, HDBSCAN will determine automatically.',
+			},
+			// Inputs for Topic Name
+			{
+				displayName: 'Cluster ID',
+				name: 'clusterId',
+				type: 'number',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['topicName'],
+					},
+				},
+				default: 0,
+				required: true,
+			},
+			{
+				displayName: 'Documents (JSON)',
+				name: 'clusterDocuments',
+				type: 'json',
+				typeOptions: {
+					alwaysOpenEditWindow: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['topicName'],
+					},
+				},
+				default: '',
+				required: true,
+				description: 'Array of documents in the cluster (output from cluster operation)',
+			},
+			{
+				displayName: 'Entities (JSON)',
+				name: 'clusterEntities',
+				type: 'json',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['topicName'],
+					},
+				},
+				default: '[]',
+				description: 'List of entities associated with the cluster',
+			},
+			{
+				displayName: 'Top Words (JSON)',
+				name: 'topWords',
+				type: 'json',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['topicName'],
+					},
+				},
+				default: '[]',
+				description: 'List of top words for the cluster',
+			},
 		],
 	};
 
@@ -193,13 +416,16 @@ export class Sentor implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const resource = this.getNodeParameter('resource', 0) as string;
 		const operation = this.getNodeParameter('operation', 0) as string;
+		const environment = this.getNodeParameter('environment', 0) as string;
+		const baseUrl =
+			environment === 'dev' ? 'https://dev.sentor.app/api' : 'https://sentor.app/api';
 
 		if (resource === 'service' && operation === 'healthCheck') {
 			// Health check endpoint
 			try {
 				const requestOptions: IHttpRequestOptions = {
 					method: 'GET',
-					url: 'https://sentor.app/api/health',
+					url: `${baseUrl}/health`,
 					json: true,
 				};
 
@@ -217,15 +443,16 @@ export class Sentor implements INodeType {
 					pairedItem: { item: 0 },
 				});
 			} catch (error) {
+				const e = error as NodeApiError;
 				if (this.continueOnFail()) {
 					returnData.push({
-						json: { error: error.message },
+						json: { error: e.message },
 						pairedItem: { item: 0 },
 					});
 				} else {
-					throw new NodeApiError(this.getNode(), error as any, {
+					throw new NodeApiError(this.getNode(), e as unknown as JsonObject, {
 						message: 'Failed to check API health',
-						description: error.message,
+						description: e.message,
 					});
 				}
 			}
@@ -287,9 +514,10 @@ export class Sentor implements INodeType {
 
 					docs.push(docPayload);
 				} catch (error) {
+					const e = error as NodeApiError;
 					if (this.continueOnFail()) {
 						returnData.push({
-							json: { error: error.message },
+							json: { error: e.message },
 							pairedItem: { item: itemIndex },
 						});
 						continue;
@@ -303,7 +531,7 @@ export class Sentor implements INodeType {
 				try {
 					const requestOptions: IHttpRequestOptions = {
 						method: 'POST',
-						url: `https://sentor.app/api/predicts?language=${language}`,
+						url: `${baseUrl}/predicts?language=${language}`,
 						headers: {
 							'Content-Type': 'application/json',
 						},
@@ -356,42 +584,197 @@ export class Sentor implements INodeType {
 							});
 						}
 
-					if (simplify) {
-						// Simplified output
-						const probability =
-							result.probabilities[result.predicted_label as string] || 0;
-						returnData.push({
-							json: {
-								predicted_class: result.predicted_class,
-								predicted_label: result.predicted_label,
-								probability,
-								details: result.details,
-							},
-							pairedItem: { item: itemIndex },
-						});
-					} else {
-						// Full output
-						returnData.push({
-							json: result as unknown as IDataObject,
-							pairedItem: { item: itemIndex },
-						});
-					}
+						if (simplify) {
+							// Simplified output
+							const probability =
+								result.probabilities[result.predicted_label as string] || 0;
+							returnData.push({
+								json: {
+									predicted_class: result.predicted_class,
+									predicted_label: result.predicted_label,
+									probability,
+									details: result.details,
+								},
+								pairedItem: { item: itemIndex },
+							});
+						} else {
+							// Full output
+							returnData.push({
+								json: result as unknown as IDataObject,
+								pairedItem: { item: itemIndex },
+							});
+						}
 					}
 				} catch (error) {
+					const e = error as NodeApiError;
 					if (this.continueOnFail()) {
 						for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 							returnData.push({
-								json: { error: error.message },
+								json: { error: e.message },
 								pairedItem: { item: itemIndex },
 							});
 						}
 					} else {
-						throw new NodeApiError(this.getNode(), error as any, {
+						throw new NodeApiError(this.getNode(), e as unknown as JsonObject, {
 							message: 'Failed to analyze sentiment',
-							description: error.message,
+							description: e.message,
 						});
 					}
 				}
+			}
+		} else if (resource === 'document' && operation === 'cluster') {
+			const language = this.getNodeParameter('language', 0) as string;
+			const n_clusters = this.getNodeParameter('n_clusters', 0) as number;
+			const inputFormat = this.getNodeParameter('inputFormat', 0) as string;
+
+			let documents: Array<{ doc_id: string; text: string; entities?: string[] }> = [];
+
+			if (inputFormat === 'json') {
+				const jsonInput = this.getNodeParameter('documentsJson', 0);
+				if (typeof jsonInput === 'string') {
+					documents = JSON.parse(jsonInput);
+				} else {
+					documents = jsonInput as Array<{ doc_id: string; text: string; entities?: string[] }>;
+				}
+			} else {
+				const uiInput = this.getNodeParameter('documentsUi', 0) as IDataObject;
+				if (uiInput.documentValues) {
+					documents = (uiInput.documentValues as IDataObject[]).map((d) => ({
+						doc_id: d.doc_id as string,
+						text: d.text as string,
+						entities: (d.entities as string)
+							.split(',')
+							.map((e) => e.trim())
+							.filter((e) => e),
+					}));
+				}
+			}
+
+			const body: IDataObject = {
+				documents,
+				language,
+			};
+
+			if (n_clusters > 0) {
+				body.n_clusters = n_clusters;
+			}
+
+			const requestOptions: IHttpRequestOptions = {
+				method: 'POST',
+				url: `${baseUrl}/cluster`,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body,
+				json: true,
+			};
+
+			const response = await this.helpers.httpRequestWithAuthentication.call(
+				this,
+				'sentorApi',
+				requestOptions,
+			);
+
+			returnData.push({
+				json: response as unknown as IDataObject,
+				pairedItem: { item: 0 },
+			});
+		} else if (resource === 'document' && operation === 'topicName') {
+			const cluster_id = this.getNodeParameter('clusterId', 0) as number;
+
+			let documents: any[] = [];
+			const documentsInput = this.getNodeParameter('clusterDocuments', 0);
+			if (typeof documentsInput === 'string') {
+				documents = JSON.parse(documentsInput);
+			} else {
+				documents = documentsInput as any[];
+			}
+
+			const language = this.getNodeParameter('language', 0) as string;
+
+			let entities: string[] = [];
+			const entitiesInput = this.getNodeParameter('clusterEntities', 0);
+			if (typeof entitiesInput === 'string') {
+				entities = JSON.parse(entitiesInput);
+			} else {
+				entities = entitiesInput as string[];
+			}
+
+			let top_words: string[] = [];
+			const topWordsInput = this.getNodeParameter('topWords', 0);
+			if (typeof topWordsInput === 'string') {
+				top_words = JSON.parse(topWordsInput);
+			} else {
+				top_words = topWordsInput as string[];
+			}
+
+			const body: IDataObject = {
+				cluster_id,
+				documents,
+				language,
+				entities,
+				top_words,
+			};
+
+			const requestOptions: IHttpRequestOptions = {
+				method: 'POST',
+				url: `${baseUrl}/topic-name`,
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body,
+				json: true,
+			};
+
+			// Add Google API Key if present
+			let usedGoogleKey = false;
+			try {
+				// Check if googleGeminiApi is configured and has data
+				// We can try to get it, if it fails or returns empty, we skip
+				const googleCreds = await this.getCredentials('googleGeminiApi').catch(() => null);
+				if (googleCreds && googleCreds.apiKey) {
+					// If credentials exist, use them
+					usedGoogleKey = true;
+					// We need to use chain authentication or add manually.
+					// Since we need TWO credentials (Sentor + Google), and n8n helper usually does one,
+					// let's do this:
+					// 1. Authenticate with Google Credential using helper (which adds X-Google-API-Key)
+					// 2. Manually add Sentor API Key header
+
+					const sentorCreds = await this.getCredentials('sentorApi');
+					if (sentorCreds.apiKey) {
+						if (!requestOptions.headers) requestOptions.headers = {};
+						requestOptions.headers['x-api-key'] = sentorCreds.apiKey as string;
+					}
+
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'googleGeminiApi',
+						requestOptions,
+					);
+
+					returnData.push({
+						json: response as unknown as IDataObject,
+						pairedItem: { item: 0 },
+					});
+				}
+			} catch (e) {
+				// Ignore error, will fall back
+				usedGoogleKey = false;
+			}
+
+			if (!usedGoogleKey) {
+				// No google credentials, fall back to just Sentor API (company key)
+				// This uses the sentorApi credential which adds x-api-key
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'sentorApi',
+					requestOptions,
+				);
+				returnData.push({
+					json: response as unknown as IDataObject,
+					pairedItem: { item: 0 },
+				});
 			}
 		}
 
@@ -401,6 +784,16 @@ export class Sentor implements INodeType {
 	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
 		const language = this.getNodeParameter('language', itemIndex, 'en') as string;
 		const self = this;
+
+		// Note: AI Agent doesn't seem to have access to node parameters like 'environment' easily unless passed in.
+		// For now, we'll default to production or try to read it if possible, but supplyData usually is for tools list.
+		// Actually, the execute function of requestOptions needs the baseUrl. 
+		// We'll default to production for the tool usage for now as environment selector is on the node main level.
+
+		// Get environment
+		const environment = this.getNodeParameter('environment', itemIndex, 'production') as string;
+		const baseUrl =
+			environment === 'dev' ? 'https://dev.sentor.app/api' : 'https://sentor.app/api';
 
 		// Create a simple tool object that n8n can use for AI Agent
 		const tool = {
@@ -433,7 +826,7 @@ export class Sentor implements INodeType {
 
 				const requestOptions: IHttpRequestOptions = {
 					method: 'POST',
-					url: `https://sentor.app/api/predicts?language=${language}`,
+					url: `${baseUrl}/predicts?language=${language}`,
 					headers: {
 						'Content-Type': 'application/json',
 					},
@@ -471,7 +864,10 @@ export class Sentor implements INodeType {
 				}
 
 				const result = response.results[0];
-				const probability = result.probabilities[result.predicted_label as string] as number || 0;
+
+				// Fix: probability access needs correct typing
+				const label = result.predicted_label as string;
+				const probability = (result.probabilities as IDataObject)[label] as number || 0;
 
 				return {
 					predicted_class: result.predicted_class,
@@ -488,4 +884,3 @@ export class Sentor implements INodeType {
 		};
 	}
 }
-

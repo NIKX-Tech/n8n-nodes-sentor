@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-sentor",
-    "version": "0.2.12",
+    "version": "0.3.0",
     "type": "commonjs",
     "description": "n8n community node for sentiment analysis using Sentor AI API",
     "license": "MIT",
@@ -37,7 +37,8 @@
         "n8nNodesApiVersion": 1,
         "strict": true,
         "credentials": [
-            "dist/credentials/SentorApi.credentials.js"
+            "dist/credentials/SentorApi.credentials.js",
+            "dist/credentials/GoogleGeminiApi.credentials.js"
         ],
         "nodes": [
             "dist/nodes/Sentor/Sentor.node.js"
