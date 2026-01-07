@@ -511,7 +511,13 @@ export class Sentor implements INodeType {
 
 					const entityItems = entitiesCollection.entityValues as Array<{ entity: string }>;
 					const entities = entityItems
-						.map((e) => e.entity?.trim())
+						.map((e) => {
+							const entityValue = e.entity;
+							if (typeof entityValue === 'string') {
+								return entityValue.trim();
+							}
+							return String(entityValue || '').trim();
+						})
 						.filter((e) => e && e.length > 0);
 
 					if (entities.length === 0) {
