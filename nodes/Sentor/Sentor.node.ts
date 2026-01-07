@@ -479,7 +479,7 @@ export class Sentor implements INodeType {
 			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 				try {
 					const documentText = this.getNodeParameter('documentText', itemIndex) as string;
-					const entitiesCollection = this.getNodeParameter('entities', itemIndex, {}) as IDataObject;
+
 
 					if (!documentText || documentText.trim() === '') {
 						throw new NodeOperationError(
@@ -500,25 +500,35 @@ export class Sentor implements INodeType {
 						doc_id: docId || `doc_${itemIndex}`,
 					};
 
-					// Parse entities - now required
-					if (!entitiesCollection || !entitiesCollection.entityValues) {
+					// Parse entities - support both entityValues structure and direct array
+					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as IDataObject;
+					let entities: string[] = [];
+
+					// Check if it's already an array of strings
+					if (Array.isArray(entitiesParam)) {
+						entities = entitiesParam.map(e => String(e).trim()).filter(e => e.length > 0);
+					}
+					// Check if it has entityValues property (fixed collection format)
+					else if (entitiesParam.entityValues && Array.isArray(entitiesParam.entityValues)) {
+						const entityItems = entitiesParam.entityValues as Array<{ entity: string }>;
+						entities = entityItems
+							.map((e) => {
+								const entityValue = e.entity;
+								if (typeof entityValue === 'string') {
+									return entityValue.trim();
+								}
+								return String(entityValue || '').trim();
+							})
+							.filter((e) => e && e.length > 0);
+					}
+					// If neither, throw error
+					else {
 						throw new NodeOperationError(
 							this.getNode(),
-							'Entities are required and must contain at least 1 entity',
+							'Entities must be provided as an array or entityValues structure',
 							{ itemIndex },
 						);
 					}
-
-					const entityItems = entitiesCollection.entityValues as Array<{ entity: string }>;
-					const entities = entityItems
-						.map((e) => {
-							const entityValue = e.entity;
-							if (typeof entityValue === 'string') {
-								return entityValue.trim();
-							}
-							return String(entityValue || '').trim();
-						})
-						.filter((e) => e && e.length > 0);
 
 					if (entities.length === 0) {
 						throw new NodeOperationError(
