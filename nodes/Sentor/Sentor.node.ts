@@ -500,33 +500,35 @@ export class Sentor implements INodeType {
 						doc_id: docId || `doc_${itemIndex}`,
 					};
 
-					// Parse entities - support both entityValues structure and direct array
+					// Parse entities - support all possible nesting (direct array, entityValues, or array-in-field)
 					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as any;
-					let entities: string[] = [];
+					const entities: string[] = [];
 
-					const parseEntityValue = (val: any): string => {
-						if (typeof val === 'string') return val.trim();
-						if (typeof val === 'number') return String(val).trim();
-						if (val && typeof val === 'object' && val.entity) return String(val.entity).trim();
-						return '';
+					const collect = (val: any) => {
+						if (val === null || val === undefined) return;
+						if (typeof val === 'string') {
+							const trimmed = val.trim();
+							if (trimmed) entities.push(trimmed);
+						} else if (typeof val === 'number') {
+							entities.push(String(val).trim());
+						} else if (Array.isArray(val)) {
+							val.forEach(collect);
+						} else if (typeof val === 'object') {
+							if (val.entity) collect(val.entity);
+							else if (val.entityValues) collect(val.entityValues);
+							else {
+								// Fallback for raw objects: collect all values
+								Object.values(val).forEach(collect);
+							}
+						}
 					};
 
-					if (Array.isArray(entitiesParam)) {
-						entities = entitiesParam.map(parseEntityValue);
-					} else if (entitiesParam && typeof entitiesParam === 'object') {
-						if (entitiesParam.entityValues && Array.isArray(entitiesParam.entityValues)) {
-							entities = entitiesParam.entityValues.map(parseEntityValue);
-						} else {
-							// Check if the object itself is an entity
-							const single = parseEntityValue(entitiesParam);
-							if (single) entities = [single];
-						}
-					}
+					collect(entitiesParam);
 
-					// Final cleanup
-					entities = entities.filter((e) => e && e.length > 0);
+					// Final cleanup - ensure uniqueness
+					const cleanEntities = [...new Set(entities)];
 
-					if (entities.length === 0) {
+					if (cleanEntities.length === 0) {
 						throw new NodeOperationError(
 							this.getNode(),
 							'Entities are required and must contain at least 1 entity. Found 0.',
@@ -534,7 +536,7 @@ export class Sentor implements INodeType {
 						);
 					}
 
-					docPayload.entities = entities;
+					docPayload.entities = cleanEntities;
 
 					docs.push(docPayload);
 				} catch (error) {
