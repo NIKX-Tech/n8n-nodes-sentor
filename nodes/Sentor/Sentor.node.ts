@@ -501,34 +501,40 @@ export class Sentor implements INodeType {
 					};
 
 					// Parse entities - support both entityValues structure and direct array
-					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as IDataObject;
+					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as any;
 					let entities: string[] = [];
 
-					// Check if it's already an array of strings
+					const parseEntityValue = (val: any): string => {
+						if (typeof val === 'string') return val.trim();
+						if (typeof val === 'number') return String(val).trim();
+						if (val && typeof val === 'object' && val.entity) return String(val.entity).trim();
+						return '';
+					};
+
 					if (Array.isArray(entitiesParam)) {
-						entities = entitiesParam.map(e => String(e).trim()).filter(e => e.length > 0);
-					}
-					// Check if it has entityValues property (fixed collection format)
-					else if (entitiesParam.entityValues && Array.isArray(entitiesParam.entityValues)) {
-						const entityItems = entitiesParam.entityValues as Array<{ entity: string }>;
-						entities = entityItems
-							.map((e) => {
-								const entityValue = e.entity;
-								if (typeof entityValue === 'string') {
-									return entityValue.trim();
+						// If it's an array, it might be an array of strings OR an array of entity objects
+						for (const item of entitiesParam) {
+							if (item && typeof item === 'object' && item.entityValues) {
+								// Case: [{ entityValues: [...] }]
+								if (Array.isArray(item.entityValues)) {
+									entities.push(...item.entityValues.map(parseEntityValue));
 								}
-								return String(entityValue || '').trim();
-							})
-							.filter((e) => e && e.length > 0);
+							} else {
+								entities.push(parseEntityValue(item));
+							}
+						}
+					} else if (entitiesParam && typeof entitiesParam === 'object') {
+						if (entitiesParam.entityValues && Array.isArray(entitiesParam.entityValues)) {
+							// Case: { entityValues: [...] }
+							entities = entitiesParam.entityValues.map(parseEntityValue);
+						} else {
+							// Single object case?
+							entities = [parseEntityValue(entitiesParam)];
+						}
 					}
-					// If neither, throw error
-					else {
-						throw new NodeOperationError(
-							this.getNode(),
-							'Entities must be provided as an array or entityValues structure',
-							{ itemIndex },
-						);
-					}
+
+					// Final cleanup
+					entities = entities.filter((e) => e && e.length > 0);
 
 					if (entities.length === 0) {
 						throw new NodeOperationError(
@@ -538,7 +544,7 @@ export class Sentor implements INodeType {
 						);
 					}
 
-					docPayload.entities = entities as string[];
+					docPayload.entities = entities;
 
 					docs.push(docPayload);
 				} catch (error) {
@@ -557,6 +563,7 @@ export class Sentor implements INodeType {
 			// Make the API request if we have documents to process
 			if (docs.length > 0) {
 				try {
+
 					const requestOptions: IHttpRequestOptions = {
 						method: 'POST',
 						url: `${baseUrl}/api/predicts?language=${language}`,
