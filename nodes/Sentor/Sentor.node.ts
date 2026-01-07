@@ -428,14 +428,14 @@ export class Sentor implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const environment = this.getNodeParameter('environment', 0) as string;
 		const baseUrl =
-			environment === 'dev' ? 'https://dev.sentor.app/api' : 'https://sentor.app/api';
+			environment === 'dev' ? 'https://dev.sentor.app' : 'https://sentor.app';
 
 		if (resource === 'service' && operation === 'healthCheck') {
 			// Health check endpoint
 			try {
 				const requestOptions: IHttpRequestOptions = {
 					method: 'GET',
-					url: `${baseUrl}/health`,
+					url: `${baseUrl}/api/health`,
 					json: true,
 				};
 
@@ -549,7 +549,7 @@ export class Sentor implements INodeType {
 				try {
 					const requestOptions: IHttpRequestOptions = {
 						method: 'POST',
-						url: `${baseUrl}/predict?language=${language}`,
+						url: `${baseUrl}/api/predicts?language=${language}`,
 						headers: {
 							'Content-Type': 'application/json',
 						},
@@ -679,7 +679,7 @@ export class Sentor implements INodeType {
 
 			const requestOptions: IHttpRequestOptions = {
 				method: 'POST',
-				url: `${baseUrl}/cluster`,
+				url: `${baseUrl}/api/predicts/cluster`,
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -736,7 +736,7 @@ export class Sentor implements INodeType {
 
 			const requestOptions: IHttpRequestOptions = {
 				method: 'POST',
-				url: `${baseUrl}/topic-name`,
+				url: `${baseUrl}/api/predicts/topic-name`,
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -844,7 +844,7 @@ export class Sentor implements INodeType {
 
 				const requestOptions: IHttpRequestOptions = {
 					method: 'POST',
-					url: `${baseUrl}/predict?language=${language}`,
+					url: `${baseUrl}/api/predicts?language=${language}`,
 					headers: {
 						'Content-Type': 'application/json',
 					},
