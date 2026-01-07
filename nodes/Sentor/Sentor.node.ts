@@ -512,24 +512,14 @@ export class Sentor implements INodeType {
 					};
 
 					if (Array.isArray(entitiesParam)) {
-						// If it's an array, it might be an array of strings OR an array of entity objects
-						for (const item of entitiesParam) {
-							if (item && typeof item === 'object' && item.entityValues) {
-								// Case: [{ entityValues: [...] }]
-								if (Array.isArray(item.entityValues)) {
-									entities.push(...item.entityValues.map(parseEntityValue));
-								}
-							} else {
-								entities.push(parseEntityValue(item));
-							}
-						}
+						entities = entitiesParam.map(parseEntityValue);
 					} else if (entitiesParam && typeof entitiesParam === 'object') {
 						if (entitiesParam.entityValues && Array.isArray(entitiesParam.entityValues)) {
-							// Case: { entityValues: [...] }
 							entities = entitiesParam.entityValues.map(parseEntityValue);
 						} else {
-							// Single object case?
-							entities = [parseEntityValue(entitiesParam)];
+							// Check if the object itself is an entity
+							const single = parseEntityValue(entitiesParam);
+							if (single) entities = [single];
 						}
 					}
 
@@ -539,7 +529,7 @@ export class Sentor implements INodeType {
 					if (entities.length === 0) {
 						throw new NodeOperationError(
 							this.getNode(),
-							'Entities are required and must contain at least 1 entity',
+							'Entities are required and must contain at least 1 entity. Found 0.',
 							{ itemIndex },
 						);
 					}
