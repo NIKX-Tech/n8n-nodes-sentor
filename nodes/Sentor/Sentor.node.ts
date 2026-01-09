@@ -820,8 +820,25 @@ export class Sentor implements INodeType {
 
 			if (simplify && response.clusters) {
 				for (const cluster of response.clusters) {
+					// Aggregate all entities found in this cluster's documents
+					const aggregatedEntities = new Set<string>();
+					if (cluster.documents && Array.isArray(cluster.documents)) {
+						for (const doc of cluster.documents) {
+							if (doc.entities && Array.isArray(doc.entities)) {
+								for (const entity of doc.entities) {
+									if (typeof entity === 'string' && entity.trim()) {
+										aggregatedEntities.add(entity.trim());
+									}
+								}
+							}
+						}
+					}
+
 					returnData.push({
-						json: cluster as unknown as IDataObject,
+						json: {
+							...cluster,
+							entities: Array.from(aggregatedEntities),
+						} as unknown as IDataObject,
 						pairedItem: { item: 0 },
 					});
 				}
