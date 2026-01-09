@@ -206,11 +206,7 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict', 'cluster'],
-					},
-					hide: {
-						operation: ['cluster'],
-						inputFormat: ['json', 'manual'],
+						operation: ['predict'],
 					},
 				},
 				default: '',
@@ -225,11 +221,7 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict', 'cluster'],
-					},
-					hide: {
-						operation: ['cluster'],
-						inputFormat: ['json', 'manual'],
+						operation: ['predict'],
 					},
 				},
 				default: '',
@@ -245,17 +237,83 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict', 'cluster'],
-					},
-					hide: {
-						operation: ['cluster'],
-						inputFormat: ['json', 'manual'],
+						operation: ['predict'],
 					},
 				},
 				default: {},
 				placeholder: 'Add Entity',
 				required: true,
 				description: 'Required list of entities to analyze within the text. Must contain at least 1 entity.',
+				options: [
+					{
+						displayName: 'Entity',
+						name: 'entityValues',
+						values: [
+							{
+								displayName: 'Entity Name',
+								name: 'entity',
+								type: 'string',
+								default: '',
+								placeholder: 'e.g., company, product, service',
+								description: 'Name of the entity to analyze',
+							},
+						],
+					},
+				],
+			},
+
+			// Inputs for Cluster (From Input Items)
+			{
+				displayName: 'Document Text',
+				name: 'documentText',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+						inputFormat: ['input'],
+					},
+				},
+				default: '',
+				required: true,
+				placeholder: 'Enter the text to analyze...',
+				description: 'The text content of the document to cluster',
+			},
+			{
+				displayName: 'Document ID',
+				name: 'docId',
+				type: 'string',
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+						inputFormat: ['input'],
+					},
+				},
+				default: '',
+				description: 'Unique identifier for the document',
+			},
+			{
+				displayName: 'Entities',
+				name: 'entities',
+				type: 'fixedCollection',
+				typeOptions: {
+					multipleValues: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+						inputFormat: ['input'],
+					},
+				},
+				default: {},
+				placeholder: 'Add Entity',
+				required: false,
+				description: 'Optional list of entities to help clustering results',
 				options: [
 					{
 						displayName: 'Entity',
