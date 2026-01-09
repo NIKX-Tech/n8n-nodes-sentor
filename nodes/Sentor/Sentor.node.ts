@@ -851,7 +851,7 @@ export class Sentor implements INodeType {
 
 			const requestOptions: IHttpRequestOptions = {
 				method: 'POST',
-				url: `${baseUrl}/api/predicts/topic-name`,
+				url: `${baseUrl}/api/predicts/topic-name?language=${language}`,
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -859,56 +859,28 @@ export class Sentor implements INodeType {
 				json: true,
 			};
 
-			// Add Google API Key if present
-			let usedGoogleKey = false;
+			// Handle dual-key system
+			// 1. Always add Sentor API Key
+			const sentorCreds = await this.getCredentials('sentorApi');
+			if (!requestOptions.headers) requestOptions.headers = {};
+			requestOptions.headers['x-api-key'] = sentorCreds.apiKey as string;
+
 			try {
-				// Check if googleGeminiApi is configured and has data
-				// We can try to get it, if it fails or returns empty, we skip
+				// 2. Try to add Google API Key if credentials are provided
 				const googleCreds = await this.getCredentials('googleGeminiApi').catch(() => null);
 				if (googleCreds && googleCreds.apiKey) {
-					// If credentials exist, use them
-					usedGoogleKey = true;
-					// We need to use chain authentication or add manually.
-					// Since we need TWO credentials (Sentor + Google), and n8n helper usually does one,
-					// let's do this:
-					// 1. Authenticate with Google Credential using helper (which adds X-Google-API-Key)
-					// 2. Manually add Sentor API Key header
-
-					const sentorCreds = await this.getCredentials('sentorApi');
-					if (sentorCreds.apiKey) {
-						if (!requestOptions.headers) requestOptions.headers = {};
-						requestOptions.headers['x-api-key'] = sentorCreds.apiKey as string;
-					}
-
-					const response = await this.helpers.httpRequestWithAuthentication.call(
-						this,
-						'googleGeminiApi',
-						requestOptions,
-					);
-
-					returnData.push({
-						json: response as unknown as IDataObject,
-						pairedItem: { item: 0 },
-					});
+					requestOptions.headers['X-Google-API-Key'] = googleCreds.apiKey as string;
 				}
-			} catch (e) {
-				// Ignore error, will fall back
-				usedGoogleKey = false;
+			} catch (error) {
+				// Ignore if credentials not found/configured
 			}
 
-			if (!usedGoogleKey) {
-				// No google credentials, fall back to just Sentor API (company key)
-				// This uses the sentorApi credential which adds x-api-key
-				const response = await this.helpers.httpRequestWithAuthentication.call(
-					this,
-					'sentorApi',
-					requestOptions,
-				);
-				returnData.push({
-					json: response as unknown as IDataObject,
-					pairedItem: { item: 0 },
-				});
-			}
+			const response = await this.helpers.httpRequest.call(this, requestOptions);
+
+			returnData.push({
+				json: response as unknown as IDataObject,
+				pairedItem: { item: 0 },
+			});
 		}
 
 		return [returnData];
