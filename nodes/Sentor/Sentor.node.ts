@@ -178,7 +178,11 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict'],
+						operation: ['predict', 'cluster'],
+					},
+					hide: {
+						operation: ['cluster'],
+						inputFormat: ['json', 'manual'],
 					},
 				},
 				default: '',
@@ -193,7 +197,11 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict'],
+						operation: ['predict', 'cluster'],
+					},
+					hide: {
+						operation: ['cluster'],
+						inputFormat: ['json', 'manual'],
 					},
 				},
 				default: '',
@@ -209,7 +217,11 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict'],
+						operation: ['predict', 'cluster'],
+					},
+					hide: {
+						operation: ['cluster'],
+						inputFormat: ['json', 'manual'],
 					},
 				},
 				default: {},
@@ -270,6 +282,11 @@ export class Sentor implements INodeType {
 						name: 'JSON Parameter',
 						value: 'json',
 						description: 'Enter documents as a JSON array',
+					},
+					{
+						name: 'From Input Items',
+						value: 'input',
+						description: 'Cluster all documents from input items',
 					},
 					{
 						name: 'Manually Defined',
@@ -663,6 +680,45 @@ export class Sentor implements INodeType {
 				} else {
 					documents = jsonInput as Array<{ doc_id: string; text: string; entities?: string[] }>;
 				}
+			} else if (inputFormat === 'input') {
+				// Collect documents from all input items
+				for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+					const documentText = this.getNodeParameter('documentText', itemIndex) as string;
+					const docId = this.getNodeParameter('docId', itemIndex, '') as string;
+
+					if (!documentText || documentText.trim() === '') {
+						continue; // Skip empty documents in clustering
+					}
+
+					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as any;
+					const entities: string[] = [];
+
+					const collect = (val: any) => {
+						if (val === null || val === undefined) return;
+						if (typeof val === 'string') {
+							const trimmed = val.trim();
+							if (trimmed) entities.push(trimmed);
+						} else if (typeof val === 'number') {
+							entities.push(String(val).trim());
+						} else if (Array.isArray(val)) {
+							val.forEach(collect);
+						} else if (typeof val === 'object') {
+							if (val.entity) collect(val.entity);
+							else if (val.entityValues) collect(val.entityValues);
+							else {
+								Object.values(val).forEach(collect);
+							}
+						}
+					};
+
+					collect(entitiesParam);
+
+					documents.push({
+						doc_id: docId || `doc_${itemIndex}`,
+						text: documentText,
+						entities: [...new Set(entities)],
+					});
+				}
 			} else {
 				const uiInput = this.getNodeParameter('documentsUi', 0) as IDataObject;
 				if (uiInput.documentValues) {
@@ -675,6 +731,13 @@ export class Sentor implements INodeType {
 							.filter((e) => e),
 					}));
 				}
+			}
+
+			if (documents.length < 5) {
+				throw new NodeOperationError(
+					this.getNode(),
+					'Clustering requires at least 5 documents. Please provide more input items or check your filtering.',
+				);
 			}
 
 			const body: IDataObject = {
