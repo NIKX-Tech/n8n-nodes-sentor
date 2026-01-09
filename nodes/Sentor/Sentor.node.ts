@@ -338,12 +338,12 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict'],
+						operation: ['predict', 'cluster'],
 					},
 				},
 				default: true,
 				description:
-					'Whether to return a simplified output with just label, probability, and details',
+					'Whether to return a simplified output (unwrapped documents for Predict, or individual items per cluster for Clustering)',
 			},
 			{
 				displayName: 'Documents (JSON)',
@@ -802,16 +802,35 @@ export class Sentor implements INodeType {
 				json: true,
 			};
 
-			const response = await this.helpers.httpRequestWithAuthentication.call(
+			const simplify = this.getNodeParameter('simplify', 0, true) as boolean;
+			const response = (await this.helpers.httpRequestWithAuthentication.call(
 				this,
 				'sentorApi',
 				requestOptions,
-			);
+			)) as {
+				clusters: Array<{
+					cluster_id: number;
+					documents: any[];
+					top_words: string[];
+					document_count: number;
+				}>;
+				total_documents: number;
+				total_clusters: number;
+			};
 
-			returnData.push({
-				json: response as unknown as IDataObject,
-				pairedItem: { item: 0 },
-			});
+			if (simplify && response.clusters) {
+				for (const cluster of response.clusters) {
+					returnData.push({
+						json: cluster as unknown as IDataObject,
+						pairedItem: { item: 0 },
+					});
+				}
+			} else {
+				returnData.push({
+					json: response as unknown as IDataObject,
+					pairedItem: { item: 0 },
+				});
+			}
 		} else if (resource === 'document' && operation === 'topicName') {
 			const cluster_id = this.getNodeParameter('clusterId', 0) as number;
 
