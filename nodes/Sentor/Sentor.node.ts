@@ -142,7 +142,7 @@ export class Sentor implements INodeType {
 				],
 				default: 'healthCheck',
 			},
-			// Common inputs
+			// Common documents settings (Language, Input Format)
 			{
 				displayName: 'Language',
 				name: 'language',
@@ -150,7 +150,7 @@ export class Sentor implements INodeType {
 				displayOptions: {
 					show: {
 						resource: ['document'],
-						operation: ['predict'],
+						operation: ['predict', 'cluster', 'topicName'],
 					},
 				},
 				options: [
@@ -158,7 +158,6 @@ export class Sentor implements INodeType {
 						name: 'English',
 						value: 'en',
 					},
-
 					{
 						name: 'Dutch',
 						value: 'nl',
@@ -166,6 +165,35 @@ export class Sentor implements INodeType {
 				],
 				default: 'en',
 				description: 'The language of the documents to analyze',
+			},
+			{
+				displayName: 'Input Format',
+				name: 'inputFormat',
+				type: 'options',
+				options: [
+					{
+						name: 'JSON Parameter',
+						value: 'json',
+						description: 'Enter documents as a JSON array',
+					},
+					{
+						name: 'From Input Items',
+						value: 'input',
+						description: 'Cluster all documents from input items',
+					},
+					{
+						name: 'Manually Defined',
+						value: 'manual',
+						description: 'Define documents using the UI',
+					},
+				],
+				displayOptions: {
+					show: {
+						resource: ['document'],
+						operation: ['cluster'],
+					},
+				},
+				default: 'json',
 			},
 			// Inputs for Predict
 			{
@@ -258,49 +286,6 @@ export class Sentor implements INodeType {
 				default: true,
 				description:
 					'Whether to return a simplified output with just label, probability, and details',
-			},
-			// Inputs for Cluster
-			{
-				displayName: 'Language',
-				name: 'language',
-				type: 'string',
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['cluster', 'topicName'],
-					},
-				},
-				default: 'en',
-				description: 'Language code (e.g., en, de, nl)',
-			},
-			{
-				displayName: 'Input Format',
-				name: 'inputFormat',
-				type: 'options',
-				options: [
-					{
-						name: 'JSON Parameter',
-						value: 'json',
-						description: 'Enter documents as a JSON array',
-					},
-					{
-						name: 'From Input Items',
-						value: 'input',
-						description: 'Cluster all documents from input items',
-					},
-					{
-						name: 'Manually Defined',
-						value: 'manual',
-						description: 'Define documents using the UI',
-					},
-				],
-				displayOptions: {
-					show: {
-						resource: ['document'],
-						operation: ['cluster'],
-					},
-				},
-				default: 'json',
 			},
 			{
 				displayName: 'Documents (JSON)',
