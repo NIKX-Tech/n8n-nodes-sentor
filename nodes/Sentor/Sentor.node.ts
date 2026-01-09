@@ -895,23 +895,22 @@ export class Sentor implements INodeType {
 				json: true,
 			};
 
-			// Handle dual-key system
-			// 1. Always add Sentor API Key
-			const sentorCreds = await this.getCredentials('sentorApi');
-			if (!requestOptions.headers) requestOptions.headers = {};
-			requestOptions.headers['x-api-key'] = sentorCreds.apiKey as string;
-
 			try {
-				// 2. Try to add Google API Key if credentials are provided
+				// 1. Try to add Google API Key if credentials are provided
 				const googleCreds = await this.getCredentials('googleGeminiApi').catch(() => null);
 				if (googleCreds && googleCreds.apiKey) {
+					if (!requestOptions.headers) requestOptions.headers = {};
 					requestOptions.headers['X-Google-API-Key'] = googleCreds.apiKey as string;
 				}
 			} catch (error) {
 				// Ignore if credentials not found/configured
 			}
 
-			const response = await this.helpers.httpRequest.call(this, requestOptions);
+			const response = await this.helpers.httpRequestWithAuthentication.call(
+				this,
+				'sentorApi',
+				requestOptions,
+			);
 
 			returnData.push({
 				json: response as unknown as IDataObject,
