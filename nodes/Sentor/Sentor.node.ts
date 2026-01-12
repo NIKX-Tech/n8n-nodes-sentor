@@ -615,32 +615,43 @@ export class Sentor implements INodeType {
 			// Make the API request if we have documents to process
 			if (docs.length > 0) {
 				try {
+					const batchSize = 5;
+					const allResults: any[] = [];
 
-					const requestOptions: IHttpRequestOptions = {
-						method: 'POST',
-						url: `${baseUrl}/api/predicts?language=${language}`,
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: {
-							docs,
-						},
-						json: true,
-					};
+					for (let i = 0; i < docs.length; i += batchSize) {
+						const batch = docs.slice(i, i + batchSize);
+						const requestOptions: IHttpRequestOptions = {
+							method: 'POST',
+							url: `${baseUrl}/api/predicts?language=${language}`,
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: {
+								docs: batch,
+							},
+							json: true,
+						};
 
-					const response = (await this.helpers.httpRequestWithAuthentication.call(
-						this,
-						'sentorApi',
-						requestOptions,
-					)) as {
-						results: Array<{
-							doc_id: string;
-							predicted_class: number;
-							predicted_label: string;
-							probabilities: IDataObject;
-							details: Array<IDataObject>;
-						}>;
-					};
+						const response = (await this.helpers.httpRequestWithAuthentication.call(
+							this,
+							'sentorApi',
+							requestOptions,
+						)) as {
+							results: Array<{
+								doc_id: string;
+								predicted_class: number;
+								predicted_label: string;
+								probabilities: IDataObject;
+								details: Array<IDataObject>;
+							}>;
+						};
+
+						if (response.results && Array.isArray(response.results)) {
+							allResults.push(...response.results);
+						}
+					}
+
+					const response = { results: allResults };
 
 					// Process the response
 					if (!response.results || !Array.isArray(response.results)) {
