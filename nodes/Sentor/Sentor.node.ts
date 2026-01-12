@@ -615,10 +615,15 @@ export class Sentor implements INodeType {
 			// Make the API request if we have documents to process
 			if (docs.length > 0) {
 				try {
-					const batchSize = 5;
+					const batchSize = 2;
 					const allResults: any[] = [];
 
 					for (let i = 0; i < docs.length; i += batchSize) {
+						if (i > 0) {
+							// Small delay to prevent overwhelming the CPU and hitting gateway limits
+							await new Promise((resolve) => (globalThis as any).setTimeout(resolve, 200));
+						}
+
 						const batch = docs.slice(i, i + batchSize);
 						const requestOptions: IHttpRequestOptions = {
 							method: 'POST',
