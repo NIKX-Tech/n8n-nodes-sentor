@@ -849,73 +849,87 @@ export class Sentor implements INodeType {
 				});
 			}
 		} else if (resource === 'document' && operation === 'topicName') {
-			const cluster_id = this.getNodeParameter('clusterId', 0) as number;
+			for (let i = 0; i < items.length; i++) {
+				const cluster_id = this.getNodeParameter('clusterId', i) as number;
 
-			let documents: any[] = [];
-			const documentsInput = this.getNodeParameter('clusterDocuments', 0);
-			if (typeof documentsInput === 'string') {
-				documents = JSON.parse(documentsInput);
-			} else {
-				documents = documentsInput as any[];
-			}
-
-			const language = this.getNodeParameter('language', 0) as string;
-
-			let entities: string[] = [];
-			const entitiesInput = this.getNodeParameter('clusterEntities', 0);
-			if (typeof entitiesInput === 'string') {
-				entities = JSON.parse(entitiesInput);
-			} else {
-				entities = entitiesInput as string[];
-			}
-
-			let top_words: string[] = [];
-			const topWordsInput = this.getNodeParameter('topWords', 0);
-			if (typeof topWordsInput === 'string') {
-				top_words = JSON.parse(topWordsInput);
-			} else {
-				top_words = topWordsInput as string[];
-			}
-
-			const body: IDataObject = {
-				cluster_id,
-				documents,
-				language,
-				entities,
-				top_words,
-			};
-
-			const requestOptions: IHttpRequestOptions = {
-				method: 'POST',
-				url: `${baseUrl}/api/predicts/topic-name?language=${language}`,
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body,
-				json: true,
-			};
-
-			try {
-				// 1. Try to add Google API Key if credentials are provided
-				const googleCreds = await this.getCredentials('googleGeminiApi').catch(() => null);
-				if (googleCreds && googleCreds.apiKey) {
-					if (!requestOptions.headers) requestOptions.headers = {};
-					requestOptions.headers['X-Google-API-Key'] = googleCreds.apiKey as string;
+				let documents: any[] = [];
+				const documentsInput = this.getNodeParameter('clusterDocuments', i);
+				if (typeof documentsInput === 'string') {
+					try {
+						documents = JSON.parse(documentsInput);
+					} catch (e) {
+						documents = [];
+					}
+				} else {
+					documents = documentsInput as any[];
 				}
-			} catch (error) {
-				// Ignore if credentials not found/configured
+
+				const language = this.getNodeParameter('language', i) as string;
+
+				let entities: string[] = [];
+				const entitiesInput = this.getNodeParameter('clusterEntities', i, []);
+				if (typeof entitiesInput === 'string') {
+					try {
+						entities = JSON.parse(entitiesInput);
+					} catch (e) {
+						entities = [];
+					}
+				} else {
+					entities = entitiesInput as string[];
+				}
+
+				let top_words: string[] = [];
+				const topWordsInput = this.getNodeParameter('topWords', i, []);
+				if (typeof topWordsInput === 'string') {
+					try {
+						top_words = JSON.parse(topWordsInput);
+					} catch (e) {
+						top_words = [];
+					}
+				} else {
+					top_words = topWordsInput as string[];
+				}
+
+				const body: IDataObject = {
+					cluster_id,
+					documents,
+					language,
+					entities,
+					top_words,
+				};
+
+				const requestOptions: IHttpRequestOptions = {
+					method: 'POST',
+					url: `${baseUrl}/api/predicts/topic-name?language=${language}`,
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body,
+					json: true,
+				};
+
+				try {
+					// 1. Try to add Google API Key if credentials are provided
+					const googleCreds = await this.getCredentials('googleGeminiApi').catch(() => null);
+					if (googleCreds && googleCreds.apiKey) {
+						if (!requestOptions.headers) requestOptions.headers = {};
+						requestOptions.headers['X-Google-API-Key'] = googleCreds.apiKey as string;
+					}
+				} catch (error) {
+					// Ignore if credentials not found/configured
+				}
+
+				const response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					'sentorApi',
+					requestOptions,
+				);
+
+				returnData.push({
+					json: response as unknown as IDataObject,
+					pairedItem: { item: i },
+				});
 			}
-
-			const response = await this.helpers.httpRequestWithAuthentication.call(
-				this,
-				'sentorApi',
-				requestOptions,
-			);
-
-			returnData.push({
-				json: response as unknown as IDataObject,
-				pairedItem: { item: 0 },
-			});
 		}
 
 		return [returnData];
