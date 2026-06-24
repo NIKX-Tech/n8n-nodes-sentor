@@ -1,236 +1,139 @@
+<!-- markdownlint-disable MD033 -->
 # n8n-nodes-sentor
 
-This is an n8n community node that lets you perform sentiment analysis using the [Sentor ML API](https://sentor.app) in your n8n workflows.
+<img src="https://raw.githubusercontent.com/NIKX-Tech/n8n-nodes-sentor/main/nodes/Sentor/sentor-v3.svg" width="70" alt="Sentor Logo">
+
+**Official n8n community node for entity-based sentiment analysis powered by the Sentor AI API.**
+
+[![npm](https://img.shields.io/npm/v/n8n-nodes-sentor?style=flat-square&logo=npm&logoColor=white)](https://www.npmjs.com/package/n8n-nodes-sentor)
+[![License](https://img.shields.io/github/license/NIKX-Tech/n8n-nodes-sentor?style=flat-square&color=blue)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/NIKX-Tech/n8n-nodes-sentor?style=flat-square&color=yellow)](https://github.com/NIKX-Tech/n8n-nodes-sentor/stargazers)
+<br>
+[![Website](https://img.shields.io/badge/website-sentor.app-5546FA?style=flat-square&logo=google-chrome&logoColor=white)](https://sentor.app)
+[![Dashboard](https://img.shields.io/badge/get%20api%20key-dashboard.sentor.app-5546FA?style=flat-square)](https://dashboard.sentor.app/settings?tab=api-access)
+[![Docs](https://img.shields.io/badge/docs-sentor.app%2Fdocs-5546FA?style=flat-square)](https://sentor.app/docs)
+
+Stop guessing why ratings drop. Sentor pinpoints exactly how customers feel about specific entities, brands, products, features, and competitors, using fine-tuned BERT models built for aspect-based sentiment analysis. Use this node to run sentiment predictions, clustering, and topic naming directly inside your n8n workflows.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
-## Installation
+---
 
-Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
+## Table of Contents
+
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Operations](#-operations)
+- [Credentials](#-credentials)
+- [Rate Limits](#-rate-limits)
+- [Resources](#-resources)
+
+---
+
+## 📦 Installation
 
 ### Community Nodes (Recommended)
 
-1. Go to **Settings > Community Nodes** in your n8n instance
-2. Select **Install a community node**
-3. Enter `n8n-nodes-sentor` in the npm package name field
-4. Click **Install**
+1. Open your n8n instance and go to **Settings > Community Nodes**
+2. Click **Install a community node**
+3. Enter `n8n-nodes-sentor` and click **Install**
 
-### Manual Installation
-
-To get started with local development or manual installation:
+### Manual / Self-Hosted
 
 ```bash
 npm install n8n-nodes-sentor
 ```
 
+Get a free API key at [dashboard.sentor.app](https://dashboard.sentor.app/settings?tab=api-access).
+
+---
+
+## 🚀 Quick Start
+
+1. Add the **Sentor** node to your workflow
+2. Create a **Sentor API** credential with your API key
+3. Set the **Document Text** field (or use an expression to pull from a previous node)
+4. Run the workflow, results come back with label, probability, and sentence-level details
+
+---
+
 ## Operations
 
-The Sentor ML node currently supports the following operation:
+### Predict Sentiment
 
-### Document > Predict Sentiment
+Analyzes the sentiment of one or more text documents. Supports English (`en`) and Dutch (`nl`).
 
-Analyzes the sentiment of text documents and returns:
-- Predicted label (positive, negative, or neutral)
-- Confidence probabilities for each sentiment
-- Sentence-level sentiment details
+| Parameter | Description |
+|-----------|-------------|
+| **Language** | `en` (English) or `nl` (Dutch) |
+| **Document Text** | The text to analyze, supports n8n expressions |
+| **Entities** | Optional comma-separated list of entities to focus on (e.g. `Apple, iPhone, price`) |
+| **Simplify Output** | Returns a flat `{ label, probability, details }` object when enabled (default: on) |
 
-## Configuration
+**Example output (simplified):**
 
-### Credentials
-
-You need a Sentor ML API key to use this node:
-
-1. Get your API key from [Sentor ML](https://sentor.app)
-2. In n8n, go to **Credentials > New**
-3. Search for "Sentor API"
-4. Enter your API key
-5. Click **Save**
-
-### Node Parameters
-
-- **Language**: Choose between English (en) or Dutch (nl)
-- **Document Text**: The text content to analyze (supports expressions for dynamic input)
-- **Entities** (optional): Comma-separated list of entities to analyze within the text (e.g., "company, product, service")
-- **Simplify Output**: When enabled (default), returns a simplified JSON structure with just label, probability, and details. When disabled, returns the full API response.
-
-## Example Usage
-
-### Basic Sentiment Analysis
-
-**Input:**
 ```json
 {
-  "documentText": "I love this product! It works great.",
-  "language": "en"
-}
-```
-
-**Output (simplified):**
-```json
-{
-  "label": "positive",
+  "predicted_label": "positive",
+  "predicted_class": 1,
   "probability": 0.95,
   "details": [
-    {
-      "sentence": "I love this product!",
-      "sentiment": "positive",
-      "score": 0.97
-    },
-    {
-      "sentence": "It works great.",
-      "sentiment": "positive",
-      "score": 0.93
-    }
+    { "sentence": "The camera is amazing.", "sentiment": "positive", "score": 0.97 }
   ]
 }
 ```
 
-### With Entities
+### Batch Processing
 
-**Input:**
-```json
-{
-  "documentText": "Apple's new iPhone is expensive but the camera quality is amazing.",
-  "language": "en",
-  "entities": "Apple, iPhone, camera"
-}
-```
+When multiple items flow into the node, it collects them into a single API request and maps each result back to its source item. No extra configuration needed.
 
-The API will provide sentiment analysis with special attention to the specified entities.
+### Topic Naming (via Google Gemini)
 
-## Batch Processing
+Attach an optional **Google Gemini API** credential to enable AI-generated topic names for your sentiment clusters.
 
-This node supports batch processing. When you pass multiple items to the node, it will:
-1. Collect all input items
-2. Send them in a single batch request to the API
-3. Return individual results mapped to each input item
+---
 
-This is more efficient than processing items one by one.
+## Credentials
 
-## Compatibility
+### Sentor API (required)
 
-- Tested with n8n version 1.0.0+
-- Requires an active Sentor ML API subscription
+1. Go to [dashboard.sentor.app](https://dashboard.sentor.app/settings?tab=api-access) and copy your API key
+2. In n8n: **Credentials > New > Sentor API**
+3. Paste your key and save
+
+### Google Gemini API (optional)
+
+Required only for the topic naming operation.
+
+1. Get a key from [Google AI Studio](https://aistudio.google.com/apikey)
+2. In n8n: **Credentials > New > Google Gemini API**
+3. Paste your key and save
+
+---
+
+## Rate Limits
+
+| Plan | Requests/min | Requests/day | Requests/month |
+|------|-------------|--------------|----------------|
+| Free | 5 | 100 | 1,000 |
+| Starter | 60 | 1,000 | 10,000 |
+| Growth | 200 | 3,000 | 30,000 |
+| Business | 500 | 10,000 | 100,000 |
+| Enterprise | Custom | Custom | Custom |
+
+See [pricing](https://sentor.app/pricing) for full plan details.
+
+---
 
 ## Resources
 
-* [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
-* [Sentor ML Homepage](https://sentor.app)
-* [Sentor ML API Documentation](https://sentor.app/docs/guides/quickstart)
-* [GitHub Repository](https://github.com/NIKX-Tech/n8n-nodes-sentor)
+- [Sentor Website](https://sentor.app)
+- [API Documentation](https://sentor.app/docs/guides/quickstart)
+- [n8n Community Nodes Documentation](https://docs.n8n.io/integrations/community-nodes/)
+- [GitHub Issues](https://github.com/NIKX-Tech/n8n-nodes-sentor/issues)
 
-## Version History
-
-### 0.1.0
-- Initial release
-- Support for sentiment prediction
-- English and Dutch language support
-- Entity-based analysis
-- Batch processing support
+---
 
 ## License
 
 [MIT](LICENSE)
-
-## Support
-
-For issues, questions, or contributions:
-- GitHub Issues: [https://github.com/NIKX-Tech/n8n-nodes-sentor/issues](https://github.com/NIKX-Tech/n8n-nodes-sentor/issues)
-- Email: erfan@nikx.one
-
-## Development
-
-### Local Development
-
-1. Clone the repository:
-```bash
-git clone https://github.com/NIKX-Tech/n8n-nodes-sentor.git
-cd n8n-nodes-sentor
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Build the node:
-```bash
-npm run build
-```
-
-4. Test locally:
-```bash
-npm run dev
-```
-
-This will start n8n with your local node loaded. You can then test it in your workflows.
-
-## Customization
-
-### Changing the Logo/Icon
-1. **Create Your Custom SVG Icons**: 24x24px SVG (light and dark mode versions).
-2. **Replace the Files**:
-   ```bash
-   cp /path/to/your/sentor-light.svg nodes/Sentor/sentor.svg
-   cp /path/to/your/sentor-dark.svg nodes/Sentor/sentor.dark.svg
-   ```
-3. **Rebuild**: `npm run build`
-
-### Adding More Languages
-In `nodes/Sentor/Sentor.node.ts`, add to the language options array:
-```typescript
-{ name: 'French', value: 'fr' },
-```
-
-## Advanced Installation (Self-Hosted)
-
-If you are running a self-hosted n8n instance (e.g., Docker), you can verify the node before publishing:
-
-### Docker Installation
-1. **Build and Pack**:
-   ```bash
-   npm run build
-   npm pack
-   ```
-2. **Mount to Container**:
-   Update `docker-compose.yml`:
-   ```yaml
-   volumes:
-     - ./n8n-nodes-sentor-0.1.0.tgz:/tmp/node-package.tgz
-   environment:
-     - N8N_CUSTOM_EXTENSIONS=/tmp
-   ```
-3. **Install inside Container**:
-   ```bash
-   docker exec -it n8n_container npm install /tmp/node-package.tgz
-   ```
-
-## Testing
-
- To test the node in a local n8n instance:
-
- 1. **Link the package locally**:
- ```bash
- npm link
- ```
- 
- 2. **In your n8n installation directory**:
- ```bash
- npm link n8n-nodes-sentor
- ```
- 
- 3. **Restart n8n** and the node will be available.
- 
- 4. **Verify**:
-    - Check "Sentor ML" appears in nodes panel.
-    - Test connection in Credentials.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
