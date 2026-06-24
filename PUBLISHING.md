@@ -150,7 +150,7 @@ Provide:
 - **Package name:** n8n-nodes-sentor
 - **npm URL:** https://www.npmjs.com/package/n8n-nodes-sentor
 - **GitHub URL:** https://github.com/erfanjn/n8n-nodes-sentor
-- **Description:** Community node for sentiment analysis using Sentor ML API
+- **Description:** Community node for sentiment analysis using the Sentor AI API
 
 ### 3. Install on Your Self-Hosted Instance
 
