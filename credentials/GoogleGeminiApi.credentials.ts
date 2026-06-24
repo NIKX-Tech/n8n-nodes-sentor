@@ -9,7 +9,7 @@ import type {
 export class GoogleGeminiApi implements ICredentialType {
     name = 'googleGeminiApi';
     displayName = 'Google Gemini API';
-    icon: Icon = 'fa:key';
+    icon: Icon = 'file:googleGemini.svg';
     documentationUrl = 'https://ai.google.dev/';
     properties: INodeProperties[] = [
         {
