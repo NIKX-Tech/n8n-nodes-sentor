@@ -8,7 +8,7 @@ import type {
 export class SentorApi implements ICredentialType {
 	name = 'sentorApi';
 	displayName = 'Sentor API';
-	documentationUrl = 'https://sentor.app/docs/#/';
+	documentationUrl = 'https://sentor.app/docs/guides/quickstart';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'API Key',
