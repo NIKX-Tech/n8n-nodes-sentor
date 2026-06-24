@@ -19,7 +19,7 @@ export class SentorApi implements ICredentialType {
 			typeOptions: { password: true },
 			default: '',
 			required: true,
-			description: 'The API key to authenticate with Sentor ML API. Get your API key from <a href="https://dashboard.sentor.app" target="_blank">sentor.app</a>.',
+			description: 'The API key to authenticate with the Sentor API. Get your API key from <a href="https://dashboard.sentor.app" target="_blank">sentor.app</a>.',
 		},
 	];
 
