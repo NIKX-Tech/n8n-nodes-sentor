@@ -116,7 +116,7 @@ This is more efficient than processing items one by one.
 
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
 * [Sentor ML Homepage](https://sentor.app)
-* [Sentor ML API Documentation](https://sentor.app/docs/#/)
+* [Sentor ML API Documentation](https://sentor.app/docs/guides/quickstart)
 * [GitHub Repository](https://github.com/NIKX-Tech/n8n-nodes-sentor)
 
 ## Version History
