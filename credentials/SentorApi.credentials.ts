@@ -3,11 +3,13 @@ import type {
 	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
+	Icon,
 } from 'n8n-workflow';
 
 export class SentorApi implements ICredentialType {
 	name = 'sentorApi';
 	displayName = 'Sentor API';
+	icon: Icon = 'file:sentor.svg';
 	documentationUrl = 'https://sentor.app/docs/guides/quickstart';
 	properties: INodeProperties[] = [
 		{

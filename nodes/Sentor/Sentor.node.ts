@@ -312,7 +312,6 @@ export class Sentor implements INodeType {
 				},
 				default: {},
 				placeholder: 'Add Entity',
-				required: false,
 				description: 'Optional list of entities to help clustering results',
 				options: [
 					{
@@ -561,10 +560,10 @@ export class Sentor implements INodeType {
 					};
 
 					// Parse entities - support all possible nesting (direct array, entityValues, or array-in-field)
-					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as any;
+					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as IDataObject;
 					const entities: string[] = [];
 
-					const collect = (val: any) => {
+					const collect = (val: unknown) => {
 						if (val === null || val === undefined) return;
 						if (typeof val === 'string') {
 							const trimmed = val.trim();
@@ -574,11 +573,11 @@ export class Sentor implements INodeType {
 						} else if (Array.isArray(val)) {
 							val.forEach(collect);
 						} else if (typeof val === 'object') {
-							if (val.entity) collect(val.entity);
-							else if (val.entityValues) collect(val.entityValues);
+							const obj = val as Record<string, unknown>;
+							if (obj.entity) collect(obj.entity);
+							else if (obj.entityValues) collect(obj.entityValues);
 							else {
-								// Fallback for raw objects: collect all values
-								Object.values(val).forEach(collect);
+								Object.values(obj).forEach(collect);
 							}
 						}
 					};
@@ -615,48 +614,31 @@ export class Sentor implements INodeType {
 			// Make the API request if we have documents to process
 			if (docs.length > 0) {
 				try {
-					const batchSize = 2;
-					const allResults: any[] = [];
+					const requestOptions: IHttpRequestOptions = {
+						method: 'POST',
+						url: `${baseUrl}/api/predicts?language=${language}`,
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: {
+							docs,
+						},
+						json: true,
+					};
 
-					for (let i = 0; i < docs.length; i += batchSize) {
-						if (i > 0) {
-							// Small delay to prevent overwhelming the CPU and hitting gateway limits
-							await new Promise((resolve) => (globalThis as any).setTimeout(resolve, 200));
-						}
-
-						const batch = docs.slice(i, i + batchSize);
-						const requestOptions: IHttpRequestOptions = {
-							method: 'POST',
-							url: `${baseUrl}/api/predicts?language=${language}`,
-							headers: {
-								'Content-Type': 'application/json',
-							},
-							body: {
-								docs: batch,
-							},
-							json: true,
-						};
-
-						const response = (await this.helpers.httpRequestWithAuthentication.call(
-							this,
-							'sentorApi',
-							requestOptions,
-						)) as {
-							results: Array<{
-								doc_id: string;
-								predicted_class: number;
-								predicted_label: string;
-								probabilities: IDataObject;
-								details: Array<IDataObject>;
-							}>;
-						};
-
-						if (response.results && Array.isArray(response.results)) {
-							allResults.push(...response.results);
-						}
-					}
-
-					const response = { results: allResults };
+					const response = (await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'sentorApi',
+						requestOptions,
+					)) as {
+						results: Array<{
+							doc_id: string;
+							predicted_class: number;
+							predicted_label: string;
+							probabilities: IDataObject;
+							details: Array<IDataObject>;
+						}>;
+					};
 
 					// Process the response
 					if (!response.results || !Array.isArray(response.results)) {
@@ -689,8 +671,8 @@ export class Sentor implements INodeType {
 
 						if (simplify) {
 							// Simplified output
-							const probability =
-								result.probabilities[result.predicted_label as string] || 0;
+							const probs = result.probabilities as Record<string, number> | undefined;
+							const probability = probs?.[result.predicted_label] ?? 0;
 							returnData.push({
 								json: {
 									predicted_class: result.predicted_class,
@@ -749,10 +731,10 @@ export class Sentor implements INodeType {
 						continue; // Skip empty documents in clustering
 					}
 
-					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as any;
+					const entitiesParam = this.getNodeParameter('entities', itemIndex, {}) as IDataObject;
 					const entities: string[] = [];
 
-					const collect = (val: any) => {
+					const collect = (val: unknown) => {
 						if (val === null || val === undefined) return;
 						if (typeof val === 'string') {
 							const trimmed = val.trim();
@@ -762,10 +744,11 @@ export class Sentor implements INodeType {
 						} else if (Array.isArray(val)) {
 							val.forEach(collect);
 						} else if (typeof val === 'object') {
-							if (val.entity) collect(val.entity);
-							else if (val.entityValues) collect(val.entityValues);
+							const obj = val as Record<string, unknown>;
+							if (obj.entity) collect(obj.entity);
+							else if (obj.entityValues) collect(obj.entityValues);
 							else {
-								Object.values(val).forEach(collect);
+								Object.values(obj).forEach(collect);
 							}
 						}
 					};
@@ -826,7 +809,7 @@ export class Sentor implements INodeType {
 			)) as {
 				clusters: Array<{
 					cluster_id: number;
-					documents: any[];
+					documents: IDataObject[];
 					top_words: string[];
 					document_count: number;
 				}>;
@@ -868,16 +851,16 @@ export class Sentor implements INodeType {
 			for (let i = 0; i < items.length; i++) {
 				const cluster_id = this.getNodeParameter('clusterId', i) as number;
 
-				let documents: any[] = [];
+				let documents: IDataObject[] = [];
 				const documentsInput = this.getNodeParameter('clusterDocuments', i);
 				if (typeof documentsInput === 'string') {
 					try {
-						documents = JSON.parse(documentsInput);
-					} catch (e) {
+						documents = JSON.parse(documentsInput) as IDataObject[];
+					} catch {
 						documents = [];
 					}
 				} else {
-					documents = documentsInput as any[];
+					documents = documentsInput as IDataObject[];
 				}
 
 				const language = this.getNodeParameter('language', i) as string;
@@ -886,8 +869,8 @@ export class Sentor implements INodeType {
 				const entitiesInput = this.getNodeParameter('clusterEntities', i, []);
 				if (typeof entitiesInput === 'string') {
 					try {
-						entities = JSON.parse(entitiesInput);
-					} catch (e) {
+						entities = JSON.parse(entitiesInput) as string[];
+					} catch {
 						entities = [];
 					}
 				} else {
@@ -898,8 +881,8 @@ export class Sentor implements INodeType {
 				const topWordsInput = this.getNodeParameter('topWords', i, []);
 				if (typeof topWordsInput === 'string') {
 					try {
-						top_words = JSON.parse(topWordsInput);
-					} catch (e) {
+						top_words = JSON.parse(topWordsInput) as string[];
+					} catch {
 						top_words = [];
 					}
 				} else {
@@ -931,7 +914,7 @@ export class Sentor implements INodeType {
 						if (!requestOptions.headers) requestOptions.headers = {};
 						requestOptions.headers['X-Google-API-Key'] = googleCreds.apiKey as string;
 					}
-				} catch (error) {
+				} catch {
 					// Ignore if credentials not found/configured
 				}
 
@@ -953,7 +936,6 @@ export class Sentor implements INodeType {
 
 	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
 		const language = this.getNodeParameter('language', itemIndex, 'en') as string;
-		const self = this;
 
 		// Note: AI Agent doesn't seem to have access to node parameters like 'environment' easily unless passed in.
 		// For now, we'll default to production or try to read it if possible, but supplyData usually is for tools list.
@@ -988,7 +970,7 @@ export class Sentor implements INodeType {
 			execute: async (args: { documentText: string; entities: string[] }) => {
 				// Validate that entities array has at least 1 item
 				if (!args.entities || args.entities.length === 0) {
-					throw new NodeApiError(self.getNode(), {
+					throw new NodeApiError(this.getNode(), {
 						message: 'Entities array is required and must contain at least 1 entity',
 						description: 'Please provide at least one entity to analyze',
 					});
@@ -1012,8 +994,8 @@ export class Sentor implements INodeType {
 					json: true,
 				};
 
-				const response = (await self.helpers.httpRequestWithAuthentication.call(
-					self,
+				const response = (await this.helpers.httpRequestWithAuthentication.call(
+					this,
 					'sentorApi',
 					requestOptions,
 				)) as {
@@ -1027,7 +1009,7 @@ export class Sentor implements INodeType {
 				};
 
 				if (!response.results || !Array.isArray(response.results) || response.results.length === 0) {
-					throw new NodeApiError(self.getNode(), {
+					throw new NodeApiError(this.getNode(), {
 						message: 'Invalid response from Sentor API',
 						description: 'The API did not return results in the expected format',
 					});
